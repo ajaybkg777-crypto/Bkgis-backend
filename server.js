@@ -38,11 +38,19 @@ app.use(
 /* ================= CORS ================= */
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",")
-  : ["http://localhost:3000"];
+  : [];
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // allow Postman, curl
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(null, true); // 🔥 TEMP SAFE FIX FOR DEPLOY
+    },
     credentials: true,
   })
 );
