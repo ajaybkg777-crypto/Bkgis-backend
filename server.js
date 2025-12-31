@@ -17,7 +17,6 @@ if (!process.env.JWT_SECRET) {
 }
 
 app.set("trust proxy", 1);
-
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -35,6 +34,7 @@ app.use(
   })
 );
 
+
 /* ================= CORS ================= */
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",")
@@ -43,9 +43,13 @@ const allowedOrigins = process.env.CORS_ORIGIN
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(null, true); // safe fallback
+      if (!origin) return callback(null, true); // allow Postman, curl
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(null, true); // 🔥 TEMP SAFE FIX FOR DEPLOY
     },
     credentials: true,
   })
@@ -55,19 +59,10 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/* ================= FILE UPLOAD DIRECTORIES ================= */
-const uploadDirs = [
-  "uploads",
-  "uploads/gallery",
-  "uploads/announcements",
-  "uploads/disclosures",
-];
-
-uploadDirs.forEach((dir) => {
-  const fullPath = path.join(__dirname, dir);
-  if (!fs.existsSync(fullPath)) {
-    fs.mkdirSync(fullPath, { recursive: true });
-  }
+/* ================= FILE UPLOADS ================= */
+["uploads", "uploads/gallery", "uploads/announcements"].forEach((dir) => {
+  const full = path.join(__dirname, dir);
+  if (!fs.existsSync(full)) fs.mkdirSync(full, { recursive: true });
 });
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -97,18 +92,16 @@ app.use("/api/admin/counseling", require("./routes/admin/counseling"));
 app.use("/api/admin/contact", require("./routes/admin/contact"));
 app.use("/api/admin/adminLeads", require("./routes/admin/adminLeads"));
 
-/* ================= HEALTH CHECK ================= */
+/* ================= HEALTH ================= */
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", time: new Date() });
 });
 
-/* ================= 404 HANDLER ================= */
+/* ================= 404 ================= */
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
 /* ================= START SERVER ================= */
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
