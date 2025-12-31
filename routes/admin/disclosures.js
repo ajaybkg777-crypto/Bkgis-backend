@@ -8,109 +8,74 @@ const router = express.Router();
 
 /* ========= MULTER CONFIG ========= */
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_, __, cb) => {
     cb(null, path.join(__dirname, "../../uploads/disclosures"));
   },
-  filename: (req, file, cb) => {
-    const safeName = file.originalname.replace(/\s+/g, "_");
-    cb(null, Date.now() + "-" + safeName);
-  },
-});
-
-const upload = multer({ storage });
-
-/* =====================================
-   ADD GENERAL INFO
-===================================== */
-router.post("/general", verifyAdmin, async (req, res) => {
-  try {
-    const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
-    doc.generalInfo.push(req.body);
-    await doc.save();
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to add general info" });
+  filename: (_, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname.replace(/\s+/g, "_"));
   }
 });
 
-/* =====================================
-   UPLOAD DOCUMENT (PDF)
-===================================== */
-router.post(
-  "/documents",
-  verifyAdmin,
-  upload.single("pdf"),
-  async (req, res) => {
-    try {
-      const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
-
-      doc.documents.push({
-        name: req.body.name,
-        pdfUrl: "/uploads/disclosures/" + req.file.filename,
-      });
-
-      await doc.save();
-      res.json({ success: true });
-    } catch (err) {
-      res.status(500).json({ error: "PDF upload failed" });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_, file, cb) => {
+    if (!file.mimetype.includes("pdf")) {
+      return cb(new Error("Only PDF allowed"));
     }
+    cb(null, true);
   }
-);
+});
 
-/* =====================================
-   RESULT X
-===================================== */
+/* ================= ROUTES ================= */
+
+router.post("/general", verifyAdmin, async (req, res) => {
+  const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
+  doc.generalInfo.push(req.body);
+  await doc.save();
+  res.json({ success: true });
+});
+
+router.post("/documents", verifyAdmin, upload.single("pdf"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+  const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
+
+  doc.documents.push({
+    name: req.body.name,
+    pdfUrl: `/uploads/disclosures/${req.file.filename}`,
+  });
+
+  await doc.save();
+  res.json({ success: true });
+});
+
 router.post("/resultX", verifyAdmin, async (req, res) => {
-  try {
-    const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
-    doc.resultX.push(req.body);
-    await doc.save();
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Result X failed" });
-  }
+  const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
+  doc.resultX.push(req.body);
+  await doc.save();
+  res.json({ success: true });
 });
 
-/* =====================================
-   RESULT XII
-===================================== */
 router.post("/resultXII", verifyAdmin, async (req, res) => {
-  try {
-    const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
-    doc.resultXII.push(req.body);
-    await doc.save();
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Result XII failed" });
-  }
+  const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
+  doc.resultXII.push(req.body);
+  await doc.save();
+  res.json({ success: true });
 });
 
-/* =====================================
-   STAFF
-===================================== */
 router.post("/staff", verifyAdmin, async (req, res) => {
-  try {
-    const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
-    doc.staff.push(req.body);
-    await doc.save();
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Staff add failed" });
-  }
+  const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
+  doc.staff.push(req.body);
+  await doc.save();
+  res.json({ success: true });
 });
 
-/* =====================================
-   INFRASTRUCTURE
-===================================== */
 router.post("/infra", verifyAdmin, async (req, res) => {
-  try {
-    const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
-    doc.infrastructure.push(req.body);
-    await doc.save();
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Infra add failed" });
-  }
+  const doc = (await Disclosure.findOne()) || (await Disclosure.create({}));
+  doc.infrastructure.push(req.body);
+  await doc.save();
+  res.json({ success: true });
 });
 
 module.exports = router;
