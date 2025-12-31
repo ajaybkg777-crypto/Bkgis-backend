@@ -1,17 +1,14 @@
+// routes/admin/calendar.js
 const express = require("express");
+const router = express.Router();
 const Calendar = require("../../models/Calendar");
 
-const router = express.Router();
-
-/* ============================
-   GET ALL EVENTS (PUBLIC)
-============================ */
 router.get("/", async (req, res) => {
   try {
-    const events = await Calendar.find().sort({ date: 1 });
-    res.json(events);
+    const data = await Calendar.find().sort({ date: -1 });
+    res.json(data);
   } catch (err) {
-    res.status(500).json({ error: "FETCH_FAILED" });
+    res.status(500).json({ error: "Failed to load calendar" });
   }
 });
 
