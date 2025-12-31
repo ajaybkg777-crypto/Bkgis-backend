@@ -60,7 +60,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* ================= FILE UPLOADS ================= */
-["uploads", "uploads/gallery", "uploads/announcements"].forEach((dir) => {
+["uploads", "uploads/gallery", "uploads/announcements",/uploads/disclosures].forEach((dir) => {
   const full = path.join(__dirname, dir);
   if (!fs.existsSync(full)) fs.mkdirSync(full, { recursive: true });
 });
