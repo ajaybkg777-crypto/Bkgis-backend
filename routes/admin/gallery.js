@@ -1,6 +1,6 @@
 const express = require("express");
 const multer = require("multer");
-const cloudinary = require("../../utils/cloudinary");
+const cloudinary = require("../utils/cloudinary");
 const Gallery = require("../../models/Gallery");
 const verifyAdmin = require("../../middleware/auth");
 
