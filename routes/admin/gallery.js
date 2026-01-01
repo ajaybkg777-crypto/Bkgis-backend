@@ -6,23 +6,16 @@ const verifyAdmin = require("../../middleware/auth");
 
 const router = express.Router();
 
-/* =============================
-   MULTER MEMORY STORAGE
-============================= */
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+/* ===== Multer Memory Storage ===== */
+const upload = multer({ storage: multer.memoryStorage() });
 
-/* =============================
-   UPLOAD GALLERY IMAGE
-============================= */
 router.post("/", verifyAdmin, upload.single("photo"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "NO_FILE_UPLOADED" });
     }
 
-    const event = (req.body.event || "").trim();
-    const category = (req.body.category || "").toLowerCase().trim();
+    const { event, category } = req.body;
 
     if (!event || !category) {
       return res.status(400).json({ error: "EVENT_AND_CATEGORY_REQUIRED" });
@@ -32,32 +25,24 @@ router.post("/", verifyAdmin, upload.single("photo"), async (req, res) => {
       return res.status(400).json({ error: "INVALID_CATEGORY" });
     }
 
-    // ✅ Upload to Cloudinary using buffer
-    const uploadResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          folder: "bkgis/gallery",
-          resource_type: "image",
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(req.file.buffer);
-    });
+    // 🔥 Upload buffer to Cloudinary
+    const result = await cloudinary.uploader.upload(
+      `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
+      {
+        folder: "bkgis/gallery",
+      }
+    );
 
-    const newItem = new Gallery({
+    const saved = await Gallery.create({
       event,
       category,
-      url: uploadResult.secure_url,
-      public_id: uploadResult.public_id,
+      url: result.secure_url,
+      public_id: result.public_id,
     });
 
-    await newItem.save();
-
-    res.status(201).json(newItem);
-  } catch (error) {
-    console.error("GALLERY UPLOAD ERROR:", error);
+    res.status(201).json(saved);
+  } catch (err) {
+    console.error("UPLOAD ERROR:", err);
     res.status(500).json({ error: "UPLOAD_FAILED" });
   }
 });
