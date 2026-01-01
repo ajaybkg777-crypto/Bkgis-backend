@@ -7,7 +7,7 @@ const verifyAdmin = require("../../middleware/auth");
 const router = express.Router();
 
 /* =============================
-   MULTER (MEMORY STORAGE)
+   MULTER MEMORY STORAGE
 ============================= */
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -32,17 +32,25 @@ router.post("/", verifyAdmin, upload.single("photo"), async (req, res) => {
       return res.status(400).json({ error: "INVALID_CATEGORY" });
     }
 
-    // 🔥 Upload to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "bkgis/gallery",
-      resource_type: "image",
+    // ✅ Upload to Cloudinary using buffer
+    const uploadResult = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: "bkgis/gallery",
+          resource_type: "image",
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(req.file.buffer);
     });
 
     const newItem = new Gallery({
       event,
       category,
-      url: result.secure_url, // 🔥 IMPORTANT
-      public_id: result.public_id,
+      url: uploadResult.secure_url,
+      public_id: uploadResult.public_id,
     });
 
     await newItem.save();
