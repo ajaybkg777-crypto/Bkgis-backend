@@ -7,7 +7,7 @@ const verifyAdmin = require("../../middleware/auth");
 const router = express.Router();
 
 /* =============================
-   MULTER (MEMORY STORAGE)
+   MULTER MEMORY STORAGE
 ============================= */
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -20,8 +20,8 @@ router.post("/", verifyAdmin, upload.single("photo"), async (req, res) => {
       return res.status(400).json({ error: "NO_FILE_UPLOADED" });
     }
 
-    const event = (req.body.event || "").trim();
-    const category = (req.body.category || "").toLowerCase().trim();
+    const event = req.body.event?.trim();
+    const category = req.body.category?.toLowerCase().trim();
 
     if (!event || !category) {
       return res.status(400).json({ error: "EVENT_AND_CATEGORY_REQUIRED" });
@@ -31,8 +31,8 @@ router.post("/", verifyAdmin, upload.single("photo"), async (req, res) => {
       return res.status(400).json({ error: "INVALID_CATEGORY" });
     }
 
-    // ✅ Upload to Cloudinary
-    const uploadResult = await cloudinary.uploader.upload(
+    // 🔥 Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(
       `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
       {
         folder: "bkgis/gallery",
@@ -42,13 +42,13 @@ router.post("/", verifyAdmin, upload.single("photo"), async (req, res) => {
     const newItem = await Gallery.create({
       event,
       category,
-      url: uploadResult.secure_url,
-      public_id: uploadResult.public_id,
+      url: result.secure_url,
+      public_id: result.public_id,
     });
 
     res.status(201).json(newItem);
-  } catch (err) {
-    console.error("UPLOAD ERROR:", err);
+  } catch (error) {
+    console.error("GALLERY UPLOAD ERROR:", error);
     res.status(500).json({ error: "UPLOAD_FAILED" });
   }
 });
