@@ -1,7 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const cloudinary = require("../../utils/cloudinary");
-const gallery = require("../../models/gallery");
+const Gallery = require("../../models/Gallery");
 const verifyAdmin = require("../../middleware/auth");
 
 const router = express.Router();
@@ -38,7 +38,7 @@ router.post("/", verifyAdmin, upload.single("photo"), async (req, res) => {
       resource_type: "image",
     });
 
-    const newItem = new gallery({
+    const newItem = new Gallery({
       event,
       category,
       url: result.secure_url, // 🔥 IMPORTANT
