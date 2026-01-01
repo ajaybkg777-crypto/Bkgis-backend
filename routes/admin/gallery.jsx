@@ -1,7 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const cloudinary = require("../../utils/cloudinary");
-const Gallery = require("../../models/Gallery");
+const Gallery = require("../../models/gallery");
 const verifyAdmin = require("../../middleware/auth");
 
 const router = express.Router();
