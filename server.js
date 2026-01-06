@@ -121,8 +121,6 @@ app.use("/api/admin/adminLeads", require("./routes/admin/adminLeads"));
 /* ==================================================
    PDF VIEW ROUTE (PRODUCTION)
 ================================================== */
-app.use("/api/pdf", require("./routes/public/pdf"));
-
 /* ==================================================
    HEALTH CHECK
 ================================================== */
