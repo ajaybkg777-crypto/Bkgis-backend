@@ -1,45 +1,26 @@
-const express = require("express");
-const axios = require("axios");
-const Disclosure = require("../../models/Disclosure");
+import { useEffect } from "react";
+import { useParams } from "react-router-dom";
 
-const router = express.Router();
+const PdfViewer = () => {
+  const { index } = useParams();
 
-/* =====================================
-   PDF VIEW ROUTE (CLOUDINARY SAFE)
-===================================== */
-router.get("/view/:docIndex", async (req, res) => {
-  try {
-    const docIndex = parseInt(req.params.docIndex, 10);
+  useEffect(() => {
+    const loadPdf = async () => {
+      const res = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/pdf/view/${index}`
+      );
 
-    if (isNaN(docIndex)) {
-      return res.status(400).send("Invalid document index");
-    }
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
 
-    const disclosure = await Disclosure.findOne().lean();
+      // 🔥 OPEN PDF WITHOUT SHOWING BACKEND URL
+      window.location.replace(blobUrl);
+    };
 
-    if (
-      !disclosure ||
-      !disclosure.documents ||
-      !disclosure.documents[docIndex]
-    ) {
-      return res.status(404).send("PDF not found");
-    }
+    loadPdf();
+  }, [index]);
 
-    const pdfUrl = disclosure.documents[docIndex].pdfUrl;
+  return <p style={{ textAlign: "center" }}>Loading PDF…</p>;
+};
 
-    // Fetch PDF from Cloudinary
-    const response = await axios.get(pdfUrl, {
-      responseType: "arraybuffer",
-    });
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline");
-
-    res.send(response.data);
-  } catch (err) {
-    console.error("PDF VIEW ERROR:", err.message);
-    res.status(500).send("Failed to load PDF");
-  }
-});
-
-module.exports = router;
+export default PdfViewer;
