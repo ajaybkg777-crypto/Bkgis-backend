@@ -91,6 +91,8 @@ app.use("/api/admin/calendar", require("./routes/admin/calendar"));
 app.use("/api/admin/counseling", require("./routes/admin/counseling"));
 app.use("/api/admin/contact", require("./routes/admin/contact"));
 app.use("/api/admin/adminLeads", require("./routes/admin/adminLeads"));
+app.use("/api/pdf", require("./routes/public/pdf"));
+
 
 /* ================= HEALTH ================= */
 app.get("/api/health", (req, res) => {
