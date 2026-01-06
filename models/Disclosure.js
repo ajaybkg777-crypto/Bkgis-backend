@@ -16,7 +16,12 @@ const AcademicSchema = new mongoose.Schema(
 );
 
 const ResultSchema = new mongoose.Schema(
-  { year: String, registered: Number, passed: Number, percentage: String },
+  {
+    year: String,
+    registered: Number,
+    passed: Number,
+    percentage: String,
+  },
   { _id: false }
 );
 
