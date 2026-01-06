@@ -18,22 +18,27 @@ const upload = multer({
 });
 
 /* ===== CLOUDINARY UPLOAD ===== */
-const uploadToCloudinary = (buffer, name) =>
+const uploadToCloudinary = (buffer, originalName) =>
   new Promise((resolve, reject) => {
-    cloudinary.uploader
-      .upload_stream(
-        {
-          resource_type: "raw",
-          folder: "disclosures",
-          public_id: name.replace(/\s+/g, "_"),
-        },
-        (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
-        }
-      )
-      .end(buffer);
+    const safeName = originalName
+      .replace(/\.[^/.]+$/, "")   // extension remove
+      .replace(/\s+/g, "_")       // spaces → _
+      .toLowerCase();
+
+    cloudinary.uploader.upload_stream(
+      {
+        folder: "disclosures",
+        public_id: safeName,
+        use_filename: true,
+        unique_filename: false,
+      },
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    ).end(buffer);
   });
+
 
 /* ===== GENERAL ===== */
 router.post("/general", verifyAdmin, async (req, res) => {
