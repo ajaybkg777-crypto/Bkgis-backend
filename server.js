@@ -115,7 +115,6 @@ app.use("/api/admin/achievements", require("./routes/admin/achievements"));
 app.use("/api/admin/disclosures", require("./routes/admin/disclosures"));
 app.use("/api/admin/calendar", require("./routes/admin/calendar"));
 app.use("/api/admin/counseling", require("./routes/admin/counseling"));
-app.use("/api/admin/contact", require("./routes/admin/contact"));
 app.use("/api/admin/adminLeads", require("./routes/admin/adminLeads"));
 
 /* ==================================================
