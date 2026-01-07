@@ -7,16 +7,16 @@ const TCRequest = require("../../models/TCRequest");
 /* ===========================
    MAIL TRANSPORTER (REUSE)
 =========================== */
-const transporter =
-  process.env.ADMIN_EMAIL && process.env.ADMIN_EMAIL_PASS
-    ? nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.ADMIN_EMAIL,
-          pass: process.env.ADMIN_EMAIL_PASS, // ✅ App Password
-        },
-      })
-    : null;
+const transporter = nodemailer.createTransport({
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.BREVO_EMAIL,   // e.g. your@email.com
+    pass: process.env.BREVO_SMTP_KEY // API key
+  }
+});
+
 
 /* ===========================
    CONTACT FORM SUBMIT
