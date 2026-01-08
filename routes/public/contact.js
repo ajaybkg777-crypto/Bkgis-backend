@@ -3,69 +3,69 @@ const router = express.Router();
 const nodemailer = require("nodemailer");
 const Contact = require("../../models/Contact");
 
-/* ================= MAIL TRANSPORT (GMAIL) ================= */
+/* ================= MAIL TRANSPORT ================= */
 const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
-  },
+host: "smtp-relay.brevo.com",
+port: 587,
+secure: false,
+auth: {
+user: process.env.BREVO_EMAIL,
+pass: process.env.BREVO_SMTP_KEY,
+},
 });
 
 // 🔍 verify SMTP on server start
-transporter.verify((err) => {
+transporter.verify((err, success) => {
   if (err) {
-    console.error("❌ Gmail SMTP ERROR:", err);
+    console.error("❌ SMTP ERROR:", err);
   } else {
-    console.log("✅ Gmail SMTP ready");
+    console.log("✅ Brevo SMTP ready");
   }
 });
+
 
 /* ================= CONTACT SUBMIT ================= */
 router.post("/submit", async (req, res) => {
-  try {
-    const { name, email, phone, subject, message } = req.body;
+try {
+const { name, email, phone, subject, message } = req.body;
 
-    if (!name || !email || !phone || !subject || !message) {
-      return res.status(400).json({ message: "All fields required" });
-    }
+if (!name || !email || !phone || !subject || !message) {
+return res.status(400).json({ message: "All fields required" });
+}
 
-    // ✅ Save to DB
-    await Contact.create({ name, email, phone, subject, message });
+await Contact.create({ name, email, phone, subject, message });
 
-    /* 📩 ADMIN MAIL */
-    await transporter.sendMail({
-      from: `"BKG International School" <${process.env.GMAIL_USER}>`,
-      to: process.env.GMAIL_USER,
-      subject: `📩 New Contact: ${subject}`,
-      html: `
-        <h3>New Contact Message</h3>
-        <p><b>Name:</b> ${name}</p>
-        <p><b>Email:</b> ${email}</p>
-        <p><b>Phone:</b> ${phone}</p>
-        <p><b>Message:</b> ${message}</p>
-      `,
-    });
-
-    /* 📩 USER CONFIRMATION MAIL */
-    await transporter.sendMail({
-      from: `"BKG International School" <${process.env.GMAIL_USER}>`,
-      to: email,
-      subject: "We received your message",
-      html: `
-        <p>Hello <b>${name}</b>,</p>
-        <p>Thank you for contacting <b>BKG International School</b>.</p>
-        <p>We will contact you shortly.</p>
-        <br/>
-        <p>Regards,<br/><b>BKG International School</b></p>
-      `,
-    });
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("CONTACT ERROR:", err);
-    res.status(500).json({ message: "Email sending failed" });
-  }
+// Admin mail
+await transporter.sendMail({
+from: `"BKG International School" <${process.env.BREVO_EMAIL}>`,
+to: process.env.BREVO_EMAIL,
+subject: `📩 New Contact: ${subject}`,
+html: `
+       <p><b>Name:</b> ${name}</p>
+       <p><b>Email:</b> ${email}</p>
+       <p><b>Phone:</b> ${phone}</p>
+       <p><b>Message:</b> ${message}</p>
+     `,
 });
 
+// User confirmation
+await transporter.sendMail({
+from: `"BKG International School" <${process.env.BREVO_EMAIL}>`,
+to: email,
+subject: "We received your message",
+html: `
+       <p>Hello ${name},</p>
+       <p>Thanks for contacting BKG International School.</p>
+       <p>We will contact you shortly.</p>
+     `,
+});
+
+res.json({ success: true });
+} catch (err) {
+console.error("CONTACT ERROR:", err);
+res.status(500).json({ message: "Failed to submit form" });
+}
+});
+
+/* 🚨 THIS LINE IS MOST IMPORTANT */
 module.exports = router;
