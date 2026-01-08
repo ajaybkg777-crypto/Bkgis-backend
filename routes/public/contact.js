@@ -14,6 +14,16 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// 🔍 verify SMTP on server start
+transporter.verify((err, success) => {
+  if (err) {
+    console.error("❌ SMTP ERROR:", err);
+  } else {
+    console.log("✅ Brevo SMTP ready");
+  }
+});
+
+
 /* ================= CONTACT SUBMIT ================= */
 router.post("/submit", async (req, res) => {
   try {
