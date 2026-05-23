@@ -20,16 +20,20 @@ const upload = multer({
 const normalize = (value = "") => value.trim().replace(/\s+/g, " ").toLowerCase();
 const toDateKey = (value = "") => String(value).slice(0, 10);
 const toUTCDate = (dateKey) => new Date(`${dateKey}T00:00:00.000Z`);
+const safePdfFileName = (value = "transfer-certificate.pdf") => {
+  const baseName = value.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9_-]+/gi, "_").toLowerCase();
+  return `${baseName || "transfer-certificate"}.pdf`;
+};
 
 const uploadPdfToCloudinary = (buffer, originalName) =>
   new Promise((resolve, reject) => {
-    const safeName = originalName.replace(/\.[^/.]+$/, "").replace(/\s+/g, "_").toLowerCase();
+    const safeName = safePdfFileName(originalName).replace(/\.pdf$/i, "");
     cloudinary.uploader
       .upload_stream(
         {
           folder: "transfer_certificates",
           resource_type: "raw",
-          public_id: `${safeName}_${Date.now()}`,
+          public_id: `${safeName}_${Date.now()}.pdf`,
         },
         (err, result) => {
           if (err) reject(err);
@@ -51,6 +55,7 @@ router.post("/", verifyAdmin, upload.single("pdf"), async (req, res) => {
     const result = await uploadPdfToCloudinary(req.file.buffer, req.file.originalname);
     const normalizedStudentName = normalize(studentName);
     const normalizedFatherName = normalize(fatherName);
+    const pdfFileName = safePdfFileName(`${studentName}_${dateKey}_tc.pdf`);
 
     const record = await TransferCertificate.findOneAndUpdate(
       {
@@ -64,6 +69,7 @@ router.post("/", verifyAdmin, upload.single("pdf"), async (req, res) => {
         dateOfBirth: toUTCDate(dateKey),
         dateKey,
         pdfUrl: result.secure_url,
+        pdfFileName,
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );

@@ -35,7 +35,10 @@ router.get("/", async (req, res) => {
       return res.status(404).json({ message: "TC not found" });
     }
 
-    return res.json({ pdfUrl: record.pdfUrl });
+    return res.json({
+      pdfUrl: record.pdfUrl,
+      pdfFileName: record.pdfFileName || "transfer-certificate.pdf",
+    });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch TC" });
   }

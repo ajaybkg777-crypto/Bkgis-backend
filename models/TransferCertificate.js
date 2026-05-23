@@ -7,6 +7,7 @@ const transferCertificateSchema = new mongoose.Schema(
     dateOfBirth: { type: Date, required: true },
     dateKey: { type: String, trim: true },
     pdfUrl: { type: String, required: true, trim: true },
+    pdfFileName: { type: String, trim: true },
   },
   { timestamps: true }
 );
