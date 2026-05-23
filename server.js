@@ -103,6 +103,7 @@ app.use("/api/public/disclosures", require("./routes/public/disclosures"));
 app.use("/api/public/calendar", require("./routes/public/calendar"));
 app.use("/api/public/counseling", require("./routes/public/counseling"));
 app.use("/api/public/contact", require("./routes/public/contact"));
+app.use("/api/public/tc", require("./routes/public/tc"));
 
 /* ==================================================
    ADMIN ROUTES (PROTECTED)
@@ -116,6 +117,7 @@ app.use("/api/admin/disclosures", require("./routes/admin/disclosures"));
 app.use("/api/admin/calendar", require("./routes/admin/calendar"));
 app.use("/api/admin/counseling", require("./routes/admin/counseling"));
 app.use("/api/admin/adminLeads", require("./routes/admin/adminLeads"));
+app.use("/api/admin/tc", require("./routes/admin/tc"));
 
 /* ==================================================
    PDF VIEW ROUTE (PRODUCTION)
