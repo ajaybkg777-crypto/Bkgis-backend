@@ -57,6 +57,44 @@ const readFromLines = (lines, labelPatterns, stopPatterns) => {
 
   return "";
 };
+const isLikelyNameValue = (line = "") =>
+  /^[A-Z][A-Z .'-]{2,80}$/.test(line) &&
+  /\s/.test(line) &&
+  !/(TRANSFER CERTIFICATE|BKG INTERNATIONAL SCHOOL|SANAWAD|KHARGONE|CBSE|WEBSITE|EMAIL|INDIAN|GOOD|PASSED)/i.test(line);
+const isLikelyNonNameValue = (line = "") =>
+  /^\d/.test(line) ||
+  /^(YES|NO|GOOD|INDIAN|OBC|SC|ST|GENERAL|TENTH|ELEVENTH|TWELFTH|NINTH|BKG INTERNATIONAL SCHOOL|TRANSFER CERTIFICATE)\b/i.test(line);
+const extractBkgTCDetails = (lines) => {
+  const scholarLabelIndex = lines.findIndex((line) => /scholar\s*(?:no\.?|number)/i.test(line));
+  const penLabelIndex = lines.findIndex((line, index) => index > scholarLabelIndex && /pen\s*(?:no\.?|number)/i.test(line));
+  const scholarCandidates =
+    scholarLabelIndex >= 0
+      ? lines
+          .slice(scholarLabelIndex + 1, penLabelIndex > scholarLabelIndex ? penLabelIndex : scholarLabelIndex + 5)
+          .filter((line) => /^[A-Za-z0-9/-]{1,30}$/.test(line))
+      : [];
+  const hasSerialLabelBeforeScholar =
+    scholarLabelIndex > 0 && /s(?:i|l)\.?\s*no\.?/i.test(lines[scholarLabelIndex - 1]);
+  const scholarNumber =
+    hasSerialLabelBeforeScholar && scholarCandidates.length > 1 ? scholarCandidates[1] : scholarCandidates[0] || "";
+
+  const reasonIndex = lines.findIndex((line) => /reasons?\s+for\s+leaving/i.test(line));
+  const signatureIndex = lines.findIndex((line, index) => index > reasonIndex && /signature\s+of\s+principal/i.test(line));
+  const valueLines =
+    reasonIndex >= 0
+      ? lines
+          .slice(reasonIndex + 1, signatureIndex > reasonIndex ? signatureIndex : reasonIndex + 20)
+          .filter((line) => !/^\d+\.\s*/.test(line))
+          .filter((line) => !isLikelyNonNameValue(line))
+      : [];
+  const nameValues = valueLines.filter(isLikelyNameValue);
+
+  return {
+    studentName: nameValues[0] || "",
+    fatherName: nameValues[1] || "",
+    scholarNumber,
+  };
+};
 
 const extractTCDetails = async (buffer) => {
   const parsed = await pdfParse(buffer);
@@ -67,7 +105,7 @@ const extractTCDetails = async (buffer) => {
     .map((line) => cleanExtractedValue(line))
     .filter(Boolean);
   const stopPatterns = [
-    /^(student|father|mother|guardian|scholar|admission|class|date|dob|nationality|category|school)\b/i,
+    /^(?:\d+\.\s*)?(student|father|mother|guardian|scholar|admission|class|date|dob|nationality|category|school|name)\b/i,
   ];
 
   const studentName =
@@ -104,7 +142,13 @@ const extractTCDetails = async (buffer) => {
       /(?:scholar\s*(?:no\.?|number)|scholar\s*id|admission\s*(?:no\.?|number)|admission\s*id|sr\.?\s*no\.?|registration\s*(?:no\.?|number))\s*[:.\-]?\s*([A-Za-z0-9/-]{1,30})/i,
     ]);
 
-  return { studentName, fatherName, scholarNumber };
+  const bkgDetails = extractBkgTCDetails(lines);
+
+  return {
+    studentName: studentName || bkgDetails.studentName,
+    fatherName: fatherName || bkgDetails.fatherName,
+    scholarNumber: bkgDetails.scholarNumber || scholarNumber,
+  };
 };
 
 const uploadPdfToCloudinary = (buffer, originalName) =>
