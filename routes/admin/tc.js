@@ -18,8 +18,6 @@ const upload = multer({
 });
 
 const normalize = (value = "") => value.trim().replace(/\s+/g, " ").toLowerCase();
-const toDateKey = (value = "") => String(value).slice(0, 10);
-const toUTCDate = (dateKey) => new Date(`${dateKey}T00:00:00.000Z`);
 const safePdfFileName = (value = "transfer-certificate.pdf") => {
   const baseName = value.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9_-]+/gi, "_").toLowerCase();
   return `${baseName || "transfer-certificate"}.pdf`;
@@ -45,29 +43,28 @@ const uploadPdfToCloudinary = (buffer, originalName) =>
 
 router.post("/", verifyAdmin, upload.single("pdf"), async (req, res) => {
   try {
-    const { studentName, fatherName, dateOfBirth } = req.body;
-    const dateKey = toDateKey(dateOfBirth);
+    const { studentName, fatherName, scholarNumber } = req.body;
 
-    if (!studentName || !fatherName || !dateKey || !req.file) {
+    if (!studentName || !fatherName || !scholarNumber || !req.file) {
       return res.status(400).json({ message: "All fields and PDF are required" });
     }
 
     const result = await uploadPdfToCloudinary(req.file.buffer, req.file.originalname);
     const normalizedStudentName = normalize(studentName);
     const normalizedFatherName = normalize(fatherName);
-    const pdfFileName = safePdfFileName(`${studentName}_${dateKey}_tc.pdf`);
+    const normalizedScholarNumber = normalize(scholarNumber);
+    const pdfFileName = safePdfFileName(`${studentName}_${scholarNumber}_tc.pdf`);
 
     const record = await TransferCertificate.findOneAndUpdate(
       {
         studentName: normalizedStudentName,
         fatherName: normalizedFatherName,
-        dateKey,
+        scholarNumber: normalizedScholarNumber,
       },
       {
         studentName: normalizedStudentName,
         fatherName: normalizedFatherName,
-        dateOfBirth: toUTCDate(dateKey),
-        dateKey,
+        scholarNumber: normalizedScholarNumber,
         pdfUrl: result.secure_url,
         pdfFileName,
       },
