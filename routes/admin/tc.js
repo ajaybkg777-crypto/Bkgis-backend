@@ -24,11 +24,37 @@ const safePdfFileName = (value = "transfer-certificate.pdf") => {
   return `${baseName || "transfer-certificate"}.pdf`;
 };
 const normalizePdfText = (value = "") => value.replace(/\r/g, "\n").replace(/[ \t]+/g, " ");
+const cleanExtractedValue = (value = "") =>
+  value
+    .replace(/^[\s:.\-]+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
 const readFirstMatch = (text, patterns) => {
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match?.[1]) return match[1].trim().replace(/\s+/g, " ");
+    if (match?.[1]) return cleanExtractedValue(match[1]);
   }
+  return "";
+};
+const readFromLines = (lines, labelPatterns, stopPatterns) => {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const label = labelPatterns.find((pattern) => pattern.test(line));
+    if (!label) continue;
+
+    const sameLineValue = cleanExtractedValue(line.replace(label, ""));
+    if (sameLineValue && !stopPatterns.some((pattern) => pattern.test(sameLineValue))) {
+      return sameLineValue;
+    }
+
+    for (let nextIndex = index + 1; nextIndex < Math.min(index + 4, lines.length); nextIndex += 1) {
+      const nextLine = cleanExtractedValue(lines[nextIndex]);
+      if (!nextLine) continue;
+      if (stopPatterns.some((pattern) => pattern.test(nextLine))) break;
+      return nextLine;
+    }
+  }
+
   return "";
 };
 
@@ -36,16 +62,47 @@ const extractTCDetails = async (buffer) => {
   const parsed = await pdfParse(buffer);
   const text = normalizePdfText(parsed.text || "");
   const compactText = text.replace(/\n+/g, " ");
+  const lines = text
+    .split("\n")
+    .map((line) => cleanExtractedValue(line))
+    .filter(Boolean);
+  const stopPatterns = [
+    /^(student|father|mother|guardian|scholar|admission|class|date|dob|nationality|category|school)\b/i,
+  ];
 
-  const studentName = readFirstMatch(compactText, [
-    /(?:student'?s?\s*name|name\s*of\s*(?:the\s*)?student|pupil'?s?\s*name|student\s*name)\s*[:\-]?\s*([A-Za-z][A-Za-z .'-]{1,80}?)(?=\s+(?:father|mother|scholar|admission|class|dob|date|$))/i,
-  ]);
-  const fatherName = readFirstMatch(compactText, [
-    /(?:father'?s?\s*name|name\s*of\s*(?:the\s*)?father|father\s*name)\s*[:\-]?\s*([A-Za-z][A-Za-z .'-]{1,80}?)(?=\s+(?:mother|scholar|admission|class|dob|date|$))/i,
-  ]);
-  const scholarNumber = readFirstMatch(compactText, [
-    /(?:scholar\s*(?:no\.?|number)|scholar\s*id|admission\s*(?:no\.?|number)|admission\s*id|sr\.?\s*no\.?)\s*[:\-]?\s*([A-Za-z0-9/-]{1,30})/i,
-  ]);
+  const studentName =
+    readFromLines(
+      lines,
+      [
+        /^(?:student'?s?\s*name|name\s*of\s*(?:the\s*)?student|pupil'?s?\s*name|student\s*name|name)\s*[:.\-]*/i,
+      ],
+      stopPatterns
+    ) ||
+    readFirstMatch(compactText, [
+      /(?:student'?s?\s*name|name\s*of\s*(?:the\s*)?student|pupil'?s?\s*name|student\s*name)\s*[:.\-]?\s*([A-Za-z][A-Za-z .'-]{1,80}?)(?=\s+(?:father|mother|guardian|scholar|admission|class|dob|date|$))/i,
+    ]);
+  const fatherName =
+    readFromLines(
+      lines,
+      [
+        /^(?:father'?s?\s*name|name\s*of\s*(?:the\s*)?father|father\s*name|father\/guardian'?s?\s*name|parent'?s?\s*name)\s*[:.\-]*/i,
+      ],
+      stopPatterns
+    ) ||
+    readFirstMatch(compactText, [
+      /(?:father'?s?\s*name|name\s*of\s*(?:the\s*)?father|father\s*name|father\/guardian'?s?\s*name|parent'?s?\s*name)\s*[:.\-]?\s*([A-Za-z][A-Za-z .'-]{1,80}?)(?=\s+(?:mother|guardian|scholar|admission|class|dob|date|$))/i,
+    ]);
+  const scholarNumber =
+    readFromLines(
+      lines,
+      [
+        /^(?:scholar\s*(?:no\.?|number)|scholar\s*id|admission\s*(?:no\.?|number)|admission\s*id|sr\.?\s*no\.?|registration\s*(?:no\.?|number))\s*[:.\-]*/i,
+      ],
+      stopPatterns
+    ) ||
+    readFirstMatch(compactText, [
+      /(?:scholar\s*(?:no\.?|number)|scholar\s*id|admission\s*(?:no\.?|number)|admission\s*id|sr\.?\s*no\.?|registration\s*(?:no\.?|number))\s*[:.\-]?\s*([A-Za-z0-9/-]{1,30})/i,
+    ]);
 
   return { studentName, fatherName, scholarNumber };
 };
@@ -78,6 +135,7 @@ router.post("/", verifyAdmin, upload.single("pdf"), async (req, res) => {
     if (!studentName || !fatherName || !scholarNumber || !req.file) {
       return res.status(400).json({
         message: "Unable to read student name, father name and scholar number from this PDF",
+        hint: "Please upload a text PDF. Scanned/image PDFs cannot be read automatically.",
       });
     }
 
